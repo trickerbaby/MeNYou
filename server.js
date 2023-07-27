@@ -1,23 +1,48 @@
 const express = require('express');
-const app = express();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http);
+const http = require('http');
+const socketIO = require('socket.io');
 
-app.use(express.static(__dirname));
+const app = express();
+const server = http.createServer(app);
+const io = socketIO(server);
+
+const PORT = 3000;
+
+app.use(express.static('public'));
 
 io.on('connection', (socket) => {
-    console.log('A user connected');
+  console.log('A user connected');
 
-    socket.on('chatMessage', (message) => {
-        io.emit('message', message);
-    });
+  // Handle incoming messages from clients
+  socket.on('message', (ar) => {
 
-    socket.on('disconnect', () => {
-        console.log('A user disconnected');
-    });
+    // Broadcast the message to all connected clients (including the sender)
+    io.to(ar[5]).emit('message', (ar));
+
+  });
+
+  socket.on('join', (roomid) => {
+
+   
+    socket.join(roomid);
+    console.log(" you are in room ",roomid);
+  });
+
+
+
+  socket.on('playsound', (roomid) => {
+
+   
+    io.to(roomid).emit('playsound',(roomid));
+    console.log(" you are in room ",roomid);
+  });
+
+  // Handle disconnection
+  socket.on('disconnect', () => {
+    console.log('A user disconnected');
+  });
 });
 
-const port = 3000;
-http.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+server.listen(PORT, () => {
+  console.log(`Server started on http://localhost:${PORT}`);
 });
